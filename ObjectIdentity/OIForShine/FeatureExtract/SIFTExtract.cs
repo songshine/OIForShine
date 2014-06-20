@@ -60,6 +60,7 @@ namespace FeatureExtract
             /////////////////////////////////////
             image.SmoothMedian(5);
 
+            
             //CvInvoke.cvEqualizeHist(image.Ptr, image.Ptr);
             //CvInvoke.cvShowImage("song", image.Ptr);
             //CvInvoke.cvWaitKey(0);

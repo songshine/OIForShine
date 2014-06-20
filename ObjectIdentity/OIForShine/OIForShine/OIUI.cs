@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -104,7 +105,7 @@ namespace OIForShine
         }
 
         private void btnGO_Click(object sender, EventArgs e)
-        {
+        {            
             if (!string.IsNullOrEmpty(this.tbTrainPath.Text)
                 && !string.IsNullOrEmpty(this.tbTestPath.Text)
                 && !string.IsNullOrEmpty(this.tbKMin.Text)

@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using Classify;
 using FeatureExtract;
+using FeatureExtract.SURF;
 using KMeanCluster;
 
 namespace OIManager
@@ -40,37 +43,41 @@ namespace OIManager
 
             #region Extract features
             outputLog.OutputLogInfo("Extracting features starts...");
-            SIFTExtract siftExtract = new SIFTExtract();
+            //SIFTExtract siftExtract = new SIFTExtract();
+            SURFExtract surfExtract = new SURFExtract();
             foreach (var item in trianImagePathList)
             {
                 Bitmap bitmap = new Bitmap(item.Item2);
-                trainFeaturesList.Add(new Tuple<string, float[][]>(item.Item1, siftExtract.Extract(bitmap)));
+                trainFeaturesList.Add(new Tuple<string, float[][]>(item.Item1, surfExtract.Extract(bitmap)));
             }
             
             foreach(var item in predictImagePathList)
             {
                 Bitmap bitmap = new Bitmap(item.Item2);
-                predictFeatureList.Add(new Tuple<string, float[][]>(item.Item1, siftExtract.Extract(bitmap)));
+                predictFeatureList.Add(new Tuple<string, float[][]>(item.Item1, surfExtract.Extract(bitmap)));
             }
             outputLog.OutputLogInfo("Extracting features finshed...");
             #endregion
 
 
             #region Finds optimal K value
+
             int optmialK = 0;
             int maxCorrect = int.MinValue;
+
             #endregion
+
             float[][] clusterData = MergeAllFeatures(trainFeaturesList);
             
             for (int k = minK; k <= maxK;k++ )
             {
                 #region Cluster data
-
+                
                 outputLog.OutputLogInfo(string.Format("---Cluster data: K = {0}---------", k));
-                KMeansResult kmeansResult = KMeans.Cluster(clusterData, k, true);
+                KMeansResult kmeansResult = KMeans.Cluster2(clusterData, k, false);
                 if (kmeansResult.sucess == false)
                 {
-                    throw new ArgumentException("Cluster failer, please try again!");
+                    throw new ArgumentException("Cluster failed, please try again!");
                 }
                 #endregion
 
@@ -79,16 +86,18 @@ namespace OIManager
                 List<Tuple<string, float[]>> trainFeatureHistList = new List<Tuple<string, float[]>>();
                 foreach(var item in trainFeaturesList)
                 {
-                    trainFeatureHistList.Add(new Tuple<string, float[]>(item.Item1, Histogram.Histogram.Calculate(item.Item2, kmeansResult.means, true, true)));
+                    trainFeatureHistList.Add(new Tuple<string, float[]>(item.Item1, Histogram.Histogram.Calculate(item.Item2, kmeansResult.means, false, true)));
                 }
                 #endregion
 
                 #region Predict
                 int sucess = 0;
+                SVMClassifer svmClassifier = new SVMClassifer();
+                svmClassifier.Train(trainFeatureHistList);
                 foreach (var item in predictFeatureList)
                 {
-                    float[] siftHist = Histogram.Histogram.Calculate(item.Item2, kmeansResult.means, true, true);
-                    if (item.Item1 == Classifer.AngleOffset(siftHist, trainFeatureHistList))
+                    float[] siftHist = Histogram.Histogram.Calculate(item.Item2, kmeansResult.means, false, true);
+                    if (item.Item1 == svmClassifier.Predict(siftHist))
                     {
                         sucess++;
                     }
@@ -97,6 +106,10 @@ namespace OIManager
                 {
                     optmialK = k;
                     maxCorrect = sucess;
+
+                    //Save Kmeans and Model
+                    svmClassifier.OutputModel("Train.Model");
+                    SaveObject("Kmeans.txt", kmeansResult);
                 }
                 outputLog.OutputLogInfo(string.Format("Total correct prediction is {0}, accuracy {1}%", sucess,(float)sucess/predictFeatureList.Count*100));
                 #endregion
@@ -201,7 +214,15 @@ namespace OIManager
         }
 
 
-        #region Private Methods
+        #region Private Methodse
+
+        private static void SaveObject(string fileName, object obj)
+        {
+            Stream stream = File.Open(fileName, FileMode.Create);
+            BinaryFormatter formatter = new BinaryFormatter();
+            formatter.Serialize(stream, obj);
+            stream.Close();
+        }
 
         private static float[][] MergeAllFeatures(List<Tuple<string, float[][]>> featuresDicList)
         {
@@ -224,10 +245,12 @@ namespace OIManager
                 cursorLength += item.Item2.Length;
             }
 
-            return result;
+             return result;
         }
 
         #endregion
+
+
 
     }
 }

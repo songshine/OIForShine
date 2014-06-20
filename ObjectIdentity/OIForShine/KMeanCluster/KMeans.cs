@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace KMeanCluster
 {
@@ -36,7 +33,7 @@ namespace KMeanCluster
                 
                 ++ct; // k-means typically converges very quickly
                 success = UpdateMeans(data, result.clustering, result.means); // compute new cluster means if possible. no effect if fail
-                changed = UpdateClustering2(data, result.clustering, result.means); // (re)assign tuples to clusters. no effect if fail
+                changed = UpdateClustering(data, result.clustering, result.means); // (re)assign tuples to clusters. no effect if fail
             }
             result.sucess = success;
             // consider adding means[][] as an out parameter - the final means could be computed
@@ -49,6 +46,50 @@ namespace KMeanCluster
             // a cluster, or a weighted combination of both
             return result;
         }
+
+        public static KMeansResult Cluster2(float[][] rawData, int numClusters, bool isNormalized = true)
+        {
+            // k-means clustering
+            // index of return is tuple ID, cell is cluster ID
+            // ex: [2 1 0 0 2 2] means tuple 0 is cluster 2, tuple 1 is cluster 1, tuple 2 is cluster 0, tuple 3 is cluster 0, etc.
+            // an alternative clustering DS to save space is to use the .NET BitArray class
+            float[][] data = isNormalized ? Normalized(rawData) : rawData; // so large values don't dominate
+
+            bool changed = true; // was there a change in at least one cluster assignment?
+            bool success = true; // were all means able to be computed? (no zero-count clusters)
+
+            // init clustering[] to get things started
+            // an alternative is to initialize means to randomly selected tuples
+            // then the processing loop is
+            // loop
+            //    update clustering
+            //    update means
+            // end loop
+            KMeansResult result = new KMeansResult();
+            //result.clustering = InitClustering(data.Length, numClusters); // semi-random initialization
+            //result.means = Allocate(numClusters, data[0].Length); // small convenience
+            result.means = InitMeans(data, numClusters);
+            result.clustering = new int[data.Length];
+            int maxCount = data.Length * 10; // sanity check
+            int ct = 0;
+            while (changed == true && success == true && ct < maxCount)
+            {
+
+                ++ct; // k-means typically converges very quickly                
+                changed = UpdateClustering2(data, result.clustering, result.means); // (re)assign tuples to clusters. no effect if fail
+                success = UpdateMeans(data, result.clustering, result.means); // compute new cluster means if possible. no effect if fail
+            }
+            result.sucess = success;
+            // consider adding means[][] as an out parameter - the final means could be computed
+            // the final means are useful in some scenarios (e.g., discretization and RBF centroids)
+            // and even though you can compute final means from final clustering, in some cases it
+            // makes sense to return the means (at the expense of some method signature uglinesss)
+            //
+            // another alternative is to return, as an out parameter, some measure of cluster goodness
+            // such as the average distance between cluster means, or the average distance between tuples in 
+            // a cluster, or a weighted combination of both
+            return result;
+        }        
 
         private static float[][] Normalized(float[][] rawData)
         {
@@ -80,6 +121,39 @@ namespace KMeanCluster
                     result[i][j] = (result[i][j] - mean) / sd;
             }
             return result;
+        }
+
+        private static float[][] InitMeans(float[][] data, int numClusters)
+        {
+            float[][] means = new float[numClusters][];
+            int[] indexs = new int[numClusters];
+
+            Random random = new Random();
+            for (int i = 0; i < numClusters; i++)
+            {
+                int newIndex = random.Next(0, data.Length);
+                bool isDuplicated = false;
+                indexs[i] = newIndex;
+                for (int j = 0; j < i; j++)
+                {
+                    if (indexs[j] == newIndex)
+                    {
+                        isDuplicated = true;
+                        break;
+                    }
+                }
+                if (isDuplicated)
+                {
+                    i--;
+                }
+                else
+                {
+                    indexs[i] = newIndex;
+                    means[i] = new float[data[newIndex].Length];
+                    Array.Copy(data[newIndex], means[i], data[newIndex].Length);
+                }
+            }
+            return means;
         }
 
         private static int[] InitClustering(int numTuples, int numClusters)

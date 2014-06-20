@@ -5,6 +5,7 @@ using System.Text;
 
 namespace KMeanCluster
 {
+    [Serializable]
     public class KMeansResult
     {
         public int[] clustering;

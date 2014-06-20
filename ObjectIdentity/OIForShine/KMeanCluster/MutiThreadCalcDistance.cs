@@ -39,7 +39,7 @@ namespace KMeanCluster
 
         public bool Calculate(float[][] data, float[][] means, int[] clustering)
         {
-            int[] oldClustering = new int[clustering.Length];
+           int[] oldClustering = new int[clustering.Length];
             Array.Copy(clustering, oldClustering, clustering.Length);
 
             for (int i = 0; i < MAX_THREAD_NUM; i++)
