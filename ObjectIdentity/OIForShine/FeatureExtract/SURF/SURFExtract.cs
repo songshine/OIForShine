@@ -42,7 +42,7 @@ namespace FeatureExtract.SURF
             /////////////////////////////////////
             image.SmoothMedian(5);
 
-
+            // image.HoughLines
             //CvInvoke.cvEqualizeHist(image.Ptr, image.Ptr);
             //CvInvoke.cvShowImage("song", image.Ptr);
             //CvInvoke.cvWaitKey(0);
@@ -56,7 +56,7 @@ namespace FeatureExtract.SURF
         {
             //Converts bgr into gray.
             Image<Gray, byte> image = new Image<Gray, byte>(bitmap);
-
+            
             //TODO: Smooth.
             image.SmoothMedian(5);
             //CvInvoke.cvShowImage("song", image.Ptr);
